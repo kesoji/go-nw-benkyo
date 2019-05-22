@@ -27,6 +27,7 @@ func main() {
 	}
 	log.Println("Listen成功")
 
+	var counter int
 	for {
 		log.Println("クライアントからの接続を待っています")
 		conn, err := l.Accept()
@@ -35,31 +36,37 @@ func main() {
 		}
 		log.Println(conn.RemoteAddr().String(), "が接続しました")
 
-		// クライアントからのデータを受け取る
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			panic(err)
-		}
-		name := string(buf[:n])
-		log.Println(conn.RemoteAddr().String(), "から受信:", name)
+		counter++
+		log.Println("goroutineを生成します")
+		go func() {
+			// ログの頭にgoroutineの番号をつけるように変数を作成
+			loghead := fmt.Sprintf("goroutine%d:", counter)
+			// クライアントからのデータを受け取る
+			buf := make([]byte, 1024)
+			n, err := conn.Read(buf)
+			if err != nil {
+				panic(err)
+			}
+			name := string(buf[:n])
+			log.Println(loghead, conn.RemoteAddr().String(), "から受信:", name)
 
-		log.Println(wait, "間の間待機します")
-		time.Sleep(*wait)
+			log.Println(loghead, wait, "間の間待機します")
+			time.Sleep(*wait)
 
-		// クライアントにデータを送信
-		_, err = conn.Write([]byte(getPhrase(name)))
-		if err != nil {
-			panic(err)
-		}
-		log.Println(conn.RemoteAddr().String(), "にデータを送信しました")
+			// クライアントにデータを送信
+			_, err = conn.Write([]byte(getPhrase(name)))
+			if err != nil {
+				panic(err)
+			}
+			log.Println(loghead, conn.RemoteAddr().String(), "にデータを送信しました")
 
-		// コネクションの終了
-		err = conn.Close()
-		if err != nil {
-			panic(err)
-		}
-		log.Println(conn.RemoteAddr().String(), "との接続を終了しました")
+			// コネクションの終了
+			err = conn.Close()
+			if err != nil {
+				panic(err)
+			}
+			log.Println(loghead, conn.RemoteAddr().String(), "との接続を終了しました")
+		}()
 	}
 
 	// ここは到達しなくなる
