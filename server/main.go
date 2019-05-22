@@ -17,6 +17,7 @@ func init() {
 
 func main() {
 	port := flag.String("p", "8888", "待ち受けのPort(デフォルト8888)")
+	wait := flag.Duration("w", 1*time.Second, "クライアントへ応答を返すまでの待ち時間")
 	flag.Parse()
 
 	// Listen(待ち受け)
@@ -26,36 +27,42 @@ func main() {
 	}
 	log.Println("Listen成功")
 
-	log.Println("クライアントからの接続を待っています")
-	conn, err := l.Accept()
-	if err != nil {
-		panic(err)
-	}
-	log.Println(conn.RemoteAddr().String(), "が接続しました")
+	for {
+		log.Println("クライアントからの接続を待っています")
+		conn, err := l.Accept()
+		if err != nil {
+			panic(err)
+		}
+		log.Println(conn.RemoteAddr().String(), "が接続しました")
 
-	// クライアントからのデータを受け取る
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		panic(err)
-	}
-	name := string(buf[:n])
-	log.Println(conn.RemoteAddr().String(), "から受信:", name)
+		// クライアントからのデータを受け取る
+		buf := make([]byte, 1024)
+		n, err := conn.Read(buf)
+		if err != nil {
+			panic(err)
+		}
+		name := string(buf[:n])
+		log.Println(conn.RemoteAddr().String(), "から受信:", name)
 
-	// クライアントにデータを送信
-	_, err = conn.Write([]byte(getPhrase(name)))
-	if err != nil {
-		panic(err)
-	}
-	log.Println(conn.RemoteAddr().String(), "にデータを送信しました")
+		log.Println(wait, "間の間待機します")
+		time.Sleep(*wait)
 
-	// コネクションの終了
-	err = conn.Close()
-	if err != nil {
-		panic(err)
-	}
-	log.Println(conn.RemoteAddr().String(), "との接続を終了しました")
+		// クライアントにデータを送信
+		_, err = conn.Write([]byte(getPhrase(name)))
+		if err != nil {
+			panic(err)
+		}
+		log.Println(conn.RemoteAddr().String(), "にデータを送信しました")
 
+		// コネクションの終了
+		err = conn.Close()
+		if err != nil {
+			panic(err)
+		}
+		log.Println(conn.RemoteAddr().String(), "との接続を終了しました")
+	}
+
+	// ここは到達しなくなる
 	log.Println("プログラムを終了します")
 }
 
